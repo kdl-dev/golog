@@ -25,6 +25,9 @@ const (
 	WARN  = "WARN"
 	ERROR = "ERROR"
 	FATAL = "FATAL"
+
+	TextType = "text"
+	JsonType = "json"
 )
 
 var (
@@ -35,6 +38,7 @@ var (
 type Logger struct {
 	outputs    []io.Writer
 	logLevel   int
+	logType    string
 	timeFormat string
 	once       sync.Once
 }
@@ -54,12 +58,17 @@ func NewLogger() *Logger {
 	log := &Logger{}
 	log.SetLevel(Trace)
 	log.SetTimeFormat(TimeFromat)
+	log.SetLogType(TextType)
 
 	return log
 }
 
 func (l *Logger) SetTimeFormat(format string) {
 	l.timeFormat = format
+}
+
+func (l *Logger) SetLogType(tp string) {
+	l.logType = tp
 }
 
 func (l *Logger) SetLevel(level int) {
@@ -113,7 +122,13 @@ func (l *Logger) write(logLevel string, text string, frame runtime.Frame) {
 }
 
 func (l *Logger) getLog(logLevel string, text string, frame runtime.Frame) string {
-	return fmt.Sprintf("%s %s [%s.%d goid-%d] %s\n", l.getTimeNow(), logLevel, frame.Function, frame.Line, goid(), text)
+	switch l.logType {
+	case JsonType:
+		return fmt.Sprintf("{time: %s, log_level: %s, caller: %s.%d, goid: %d, text: %s}\n", l.getTimeNow(), logLevel, frame.Function, frame.Line, goid(), text)
+	default:
+		return fmt.Sprintf("%s %s [%s.%d goid-%d] %s\n", l.getTimeNow(), logLevel, frame.Function, frame.Line, goid(), text)
+	}
+
 }
 
 func (l *Logger) getTimeNow() string {
